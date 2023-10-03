@@ -1,6 +1,7 @@
 import os
-import csv
+import pandas as pd
 from typing import Dict
+import re
 
 TEMPLATE_FILENAME = "template.pcsp"
 
@@ -48,7 +49,6 @@ REQUIRED_KEYS = [
     "alf_probLoseBall",
     "dk_gkRating",
 ]
-
 
 SRC_DIR = "./Datasets"
 MATCHES_DIR = f"{SRC_DIR}/matches"
@@ -99,70 +99,127 @@ def validate_data(data: Dict[str, int]) -> bool:
 
 def get_csv_files_in_folder(dir):
     matches = os.listdir(dir)
-    return matches
+    return sorted(matches)
 
 
-def get_match_sofifa_ids(csv_file):
+def get_match_sofifa_ids(matches_df: pd.DataFrame, matchId):
     home_team_sofifa_ids_column = "home_xi_sofifa_ids"
     away_team_sofifa_ids_column = "away_xi_sofifa_ids"
     home_team_column = "home_team"
     away_team_column = "away_team"
 
-    sofifa_ids = []
-    with open(f"{MATCHES_DIR}/{csv_file}", mode="r", newline="") as csv_file:
-        reader = csv.DictReader(csv_file)
-        for row in reader:
-            if (
-                home_team_column in row
-                and away_team_column in row
-                and home_team_sofifa_ids_column in row
-                and away_team_sofifa_ids_column in row
-            ):
-                home_sofifa_ids = [
-                    int(float(id)) for id in row[home_team_sofifa_ids_column].split(",")
-                ]
-                away_sofifa_ids = [
-                    int(float(id)) for id in row[away_team_sofifa_ids_column].split(",")
-                ]
-                sofifa_ids.append(
-                    {
-                        "home_team": row[home_team_column],
-                        "away_team": row[away_team_column],
-                        "home_team_sofifa_ids": {
-                            "goalkeeper": home_sofifa_ids[0],
-                            "defenders": home_sofifa_ids[1:5],
-                            "midfielders": home_sofifa_ids[5:8],
-                            "forwards": home_sofifa_ids[8:11],
-                        },
-                        "away_team_sofifa_ids": {
-                            "goalkeeper": away_sofifa_ids[0],
-                            "defenders": away_sofifa_ids[1:5],
-                            "midfielders": away_sofifa_ids[5:8],
-                            "forwards": away_sofifa_ids[8:11],
-                        },
-                    }
-                )
-            else:
-                sofifa_ids.append(None)
-    return sofifa_ids
+    row = matches_df.loc[matchId]
+    home_sofifa_ids = [
+        int(float(id)) for id in row[home_team_sofifa_ids_column].split(",")
+    ]
+    away_sofifa_ids = [
+        int(float(id)) for id in row[away_team_sofifa_ids_column].split(",")
+    ]
+
+    return {
+        "home_team": row[home_team_column],
+        "away_team": row[away_team_column],
+        "home_team_sofifa_ids": {
+            "goalkeeper": home_sofifa_ids[:1],
+            "defenders": home_sofifa_ids[1:5],
+            "midfielders": home_sofifa_ids[5:8],
+            "forwards": home_sofifa_ids[8:11],
+        },
+        "away_team_sofifa_ids": {
+            "goalkeeper": away_sofifa_ids[:1],
+            "defenders": away_sofifa_ids[1:5],
+            "midfielders": away_sofifa_ids[5:8],
+            "forwards": away_sofifa_ids[8:11],
+        },
+    }
 
 
-def get_player_rating_by_sofifa_id(csv_file, sofifa_id):
-    with open(f"{RATINGS_DIR}/{csv_file}", mode="r", newline="") as csv_file:
-        reader = csv.DictReader(csv_file)
-        for row in reader:
-            if "sofifa_id" in row and int(float(row["sofifa_id"])) == sofifa_id:
-                get_player_statistics(row)
-    return
+def get_player_rating_by_sofifa_id(rating_df: pd.DataFrame, sofifa_id):
+    for index, row in rating_df.iterrows():
+        if "sofifa_id" in row and int(float(row["sofifa_id"])) == sofifa_id:
+            get_player_statistics(row)
 
 
 def get_player_statistics(row):
+    print(row["short_name"])
     return
 
 
+def get_seasons_cli():
+    season_pattern = r"\d{8}"
+    available_seasons = []
+    for i, season in enumerate(seasons, start=1):
+        value = "".join(re.findall(season_pattern, season))
+        available_seasons.append(f"{i}. {value}")
+    return available_seasons
+
+
+def get_matches_cli(matches_df: pd.DataFrame):
+    matches = []
+    for index, row in matches_df.iterrows():
+        name = str(index + 1) + ". " + row["home_team"] + " VS " + row["away_team"]
+        matches.append(name)
+    return matches
+
+
+def print_player(rating_df: pd.DataFrame, players_in_match):
+    print("\nHome Team")
+    print("\nGoalkeeper")
+    for player in players_in_match["home_team_sofifa_ids"]["goalkeeper"]:
+        get_player_rating_by_sofifa_id(rating_df, player)
+
+    print("\nDefenders")
+    for player in players_in_match["home_team_sofifa_ids"]["defenders"]:
+        get_player_rating_by_sofifa_id(rating_df, player)
+
+    print("\nMidfielders")
+    for player in players_in_match["home_team_sofifa_ids"]["midfielders"]:
+        get_player_rating_by_sofifa_id(rating_df, player)
+
+    print("\nForwards")
+    for player in players_in_match["home_team_sofifa_ids"]["forwards"]:
+        get_player_rating_by_sofifa_id(rating_df, player)
+
+    print("\nAway Team")
+    print("\nGoalkeeper")
+    for player in players_in_match["away_team_sofifa_ids"]["goalkeeper"]:
+        get_player_rating_by_sofifa_id(rating_df, player)
+
+    print("\nDefenders")
+    for player in players_in_match["away_team_sofifa_ids"]["defenders"]:
+        get_player_rating_by_sofifa_id(rating_df, player)
+
+    print("\nMidfielders")
+    for player in players_in_match["away_team_sofifa_ids"]["midfielders"]:
+        get_player_rating_by_sofifa_id(rating_df, player)
+
+    print("\nForwards")
+    for player in players_in_match["away_team_sofifa_ids"]["forwards"]:
+        get_player_rating_by_sofifa_id(rating_df, player)
+
+
 if __name__ == "__main__":
-    matches = get_csv_files_in_folder(MATCHES_DIR)
+    seasons = get_csv_files_in_folder(MATCHES_DIR)
     ratings = get_csv_files_in_folder(RATINGS_DIR)
 
-    for match in matches:
-        print(get_match_sofifa_ids(match))
+    available_seasons = "\n".join(get_seasons_cli())
+    season = input(f"Select a season and hit enter\n{available_seasons}")
+
+    if not season.isdigit() or int(season) > len(seasons):
+        print("Invalid season selected")
+        exit()
+
+    season_file_name = seasons[int(season) - 1]
+    print(f"Selected season matches file: {season_file_name}")
+    rating_file_name = ratings[int(season) - 1]
+    print(f"Selected season ratings file: {rating_file_name}\n")
+
+    matches_df = pd.read_csv(f"{MATCHES_DIR}/{season_file_name}")
+    rating_df = pd.read_csv(f"{RATINGS_DIR}/{rating_file_name}")
+
+    matches = "\n".join(get_matches_cli(matches_df))
+    matchId = input(f"Select a match from {season_file_name} and hit enter\n{matches}")
+
+    players_in_match = get_match_sofifa_ids(matches_df, int(matchId) - 1)
+
+    print_player(rating_df, players_in_match)
