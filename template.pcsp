@@ -27,7 +27,7 @@ var danger = 0;
 
 // Actions based on FIFA player ratings
 // ShortPass, LongPass, LongShot, Finishing, Volley, and Header
-enum {{SP, LP, LS, FI, VO, HD}};
+enum {{SP, LP, LS, FI, VO, HD, TK}};
 
 // Match URL: https://www.premierleague.com/match/12115
 
@@ -121,7 +121,7 @@ For(finishRating, longShotRating, volleyRating, headerRating, probToLoseBall, po
 	probToLoseBall: tackled{{danger = 2;}} -> UpdatePos(position, TK); DefKep
 }} [] [defKepPos[C] == 1 && inAir == true]header -> pcase {{
 	headerRating: shoot -> UpdatePos(position, HD); DefKep
-	probToLoseBall: tackled{{danger = 2;}} -> -> UpdatePos(position, TK); DefKep
+	probToLoseBall: tackled{{danger = 2;}} -> UpdatePos(position, TK); DefKep
 }};
 
 Kep_2(gpRating, position) = attemptSave -> pcase {{
