@@ -1,3 +1,4 @@
+template = """
 // NOTE: This will only produce probabilities of goal when the away team attacks while the home team defends 
 // A similar pcsp file will have to be generated from the home team POV to meaningfully compare which team has the higher chance of scoring during an attack
 
@@ -187,3 +188,4 @@ UpdatePos(position, e) = case {{
 #assert AtkKep |= F G Goal2 with prob;
 #assert AtkKep |= F G Goal3 with prob;
 #assert AtkKep |= F G Goal4 with prob;
+"""
