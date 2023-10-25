@@ -1,5 +1,6 @@
 __pycache__/*
 
-Generated_Models/*.pcsp
+models/generated_models/*.pcsp
+models/model_outputs/*.txt
 
 PAT351/*.output
