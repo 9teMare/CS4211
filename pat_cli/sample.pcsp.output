@@ -1,0 +1,128 @@
+=======================================================
+Assertion: AtkKep() deadlockfree
+********Verification Result********
+The Assertion (AtkKep() deadlockfree) is VALID.
+
+********Verification Setting********
+Admissible Behavior: All
+Search Engine: First Witness Trace using Depth First Search
+System Abstraction: False
+
+
+********Verification Statistics********
+Visited States:365
+Total Transitions:459
+Time Used:0.0307363s
+Estimated Memory Used:8518.144KB
+
+
+=======================================================
+Assertion: AtkKep() |= F G Goal0 with prob
+********Verification Result********
+The Assertion (AtkKep() |= F G Goal0 with prob) is Valid with Probability [0.02849, 0.06565];
+
+WARNING: The system has deadlock states. Self-loop transitions have been added to remove the deadlock!
+
+********Verification Setting********
+Admissible Behavior: All
+Search Engine: End-Components Identification; Graph-based Probabity Computation.
+System Abstraction: False
+Maximum difference threshold : 1E-06
+
+
+********Verification Statistics********
+Visited States:772
+Total Transitions:998
+MDP Iterations:989
+Time Used:0.0629145s
+Estimated Memory Used:133781.088KB
+
+
+=======================================================
+Assertion: AtkKep() |= F G Goal1 with prob
+********Verification Result********
+The Assertion (AtkKep() |= F G Goal1 with prob) is Valid with Probability [0.10175, 0.23446];
+
+WARNING: The system has deadlock states. Self-loop transitions have been added to remove the deadlock!
+
+********Verification Setting********
+Admissible Behavior: All
+Search Engine: End-Components Identification; Graph-based Probabity Computation.
+System Abstraction: False
+Maximum difference threshold : 1E-06
+
+
+********Verification Statistics********
+Visited States:772
+Total Transitions:998
+MDP Iterations:683
+Time Used:0.0600164s
+Estimated Memory Used:133711.696KB
+
+
+=======================================================
+Assertion: AtkKep() |= F G Goal2 with prob
+********Verification Result********
+The Assertion (AtkKep() |= F G Goal2 with prob) is Valid with Probability [0.19128, 0.24367];
+
+WARNING: The system has deadlock states. Self-loop transitions have been added to remove the deadlock!
+
+********Verification Setting********
+Admissible Behavior: All
+Search Engine: End-Components Identification; Graph-based Probabity Computation.
+System Abstraction: False
+Maximum difference threshold : 1E-06
+
+
+********Verification Statistics********
+Visited States:772
+Total Transitions:998
+MDP Iterations:675
+Time Used:0.0276699s
+Estimated Memory Used:101087.216KB
+
+
+=======================================================
+Assertion: AtkKep() |= F G Goal3 with prob
+********Verification Result********
+The Assertion (AtkKep() |= F G Goal3 with prob) is Valid with Probability [0.38928, 0.4209];
+
+WARNING: The system has deadlock states. Self-loop transitions have been added to remove the deadlock!
+
+********Verification Setting********
+Admissible Behavior: All
+Search Engine: End-Components Identification; Graph-based Probabity Computation.
+System Abstraction: False
+Maximum difference threshold : 1E-06
+
+
+********Verification Statistics********
+Visited States:772
+Total Transitions:998
+MDP Iterations:645
+Time Used:0.0656228s
+Estimated Memory Used:133723.768KB
+
+
+=======================================================
+Assertion: AtkKep() |= F G Goal4 with prob
+********Verification Result********
+The Assertion (AtkKep() |= F G Goal4 with prob) is Valid with Probability [0.64, 0.64];
+
+WARNING: The system has deadlock states. Self-loop transitions have been added to remove the deadlock!
+
+********Verification Setting********
+Admissible Behavior: All
+Search Engine: End-Components Identification; Graph-based Probabity Computation.
+System Abstraction: False
+Maximum difference threshold : 1E-06
+
+
+********Verification Statistics********
+Visited States:772
+Total Transitions:998
+MDP Iterations:645
+Time Used:0.0624709s
+Estimated Memory Used:130933.888KB
+
+
