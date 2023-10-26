@@ -1,6 +1,7 @@
 import os
 import pandas as pd
-from multiprocessing import Pool, cpu_count
+from concurrent.futures import ThreadPoolExecutor
+from multiprocessing import cpu_count
 from create_pcsp_model import (
   MATCHES_DIR,
   RATINGS_DIR,
@@ -11,12 +12,40 @@ from create_pcsp_model import (
   create_pcsp_model
 )
 
-LOGS_FOLDER = "./logs"
+CPU_COUNT = int(os.environ.get("SLURM_JOB_CPUS_PER_NODE", cpu_count()))
+THREAD_TO_CPU_RATIO = 2
+MAX_WORKERS = CPU_COUNT * THREAD_TO_CPU_RATIO
 
+def process_single_match(matches_df, ratings_df, match_idx, selected_season):
+  match_name = get_match_name(matches_df, match_idx)
+  players_in_match = get_match_sofifa_ids(matches_df, match_idx)
+
+  try:
+    home_data_dict, away_data_dict = generate_data_dict(ratings_df, players_in_match)
+  except Exception as e:
+    print(f"Error occurred for {selected_season} {match_idx} {match_name}: {e}")
+    return
+
+  base_file_name = f"{selected_season}__{match_name}"
+
+  try:
+    create_pcsp_model(f"{base_file_name}_home.pcsp", home_data_dict)
+    create_pcsp_model(f"{base_file_name}_away.pcsp", away_data_dict)
+  except Exception as e:
+    print(f"Error occurred for {selected_season} {match_idx} {match_name}: {e}")
+    return
+
+  print(f"Generated models for match {match_idx}, {match_name} of season {selected_season}.")
+
+def wrapper(args):
+  return process_single_match(*args)
 
 if __name__ == "__main__":
+
   all_seasons = get_csv_files_in_folder(MATCHES_DIR)
   all_ratings = get_csv_files_in_folder(RATINGS_DIR)
+
+  tasks = []
 
   for i in range(0, len(all_seasons)):
     season_idx = i
@@ -29,25 +58,9 @@ if __name__ == "__main__":
     selected_season = season_file_name[-12:-4]
 
     for match_idx, row in matches_df.iterrows():
-      match_name = get_match_name(matches_df, match_idx)
+      task = (matches_df, ratings_df, match_idx, selected_season)
+      tasks.append(task)
+  
 
-      players_in_match = get_match_sofifa_ids(matches_df, match_idx)
-
-      home_data_dict, away_data_dict = generate_data_dict(rating_df, players_in_match)
-
-      if home_data_dict is None or away_data_dict is None:
-        print(f"Could not generate data for match {match_idx}, {match_name} of season {selected_season}.")
-        continue
-      
-      base_file_name = f"{selected_season}__{match_name}"
-
-      create_pcsp_model(f"{base_file_name}_home.pcsp", home_data_dict)
-      create_pcsp_model(f"{base_file_name}_away.pcsp", away_data_dict)
-
-
-
-
-
-
-
-
+  with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+    executor.map(wrapper, tasks)

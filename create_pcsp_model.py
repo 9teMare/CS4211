@@ -90,17 +90,23 @@ DEFENDING_POSITION_MAPPER = {
     "LF": "CRD",
 }
 
+class DataValidationError(Exception):
+    pass
+
+class TemplateNotFoundError(Exception):
+    pass
+
+class FileExistsError(Exception):
+    pass
 
 def create_pcsp_model(filename: str, data: Dict[str, int]) -> None:
     # Validate data to check if it has the relevant data
     if not validate_data(data):
-        print("Data dictionary passed is not valid, please check.")
-        return
+        raise DataValidationError("Data dictionary passed is not valid, please check.")
 
     # Check if template file exists
     if not os.path.exists(f"{MODELS_DIR}/{TEMPLATE_FILENAME}"):
-        print("Template file not found")
-        return
+        raise TemplateNotFoundError("Template file not found")
 
     with open(f"{MODELS_DIR}/{TEMPLATE_FILENAME}", "r") as file:
         template = file.read()
@@ -109,8 +115,7 @@ def create_pcsp_model(filename: str, data: Dict[str, int]) -> None:
     try:
         content = template.format(**data)
     except KeyError as e:
-        print(f"Key error: {e} not found in data.")
-        return
+        raise KeyError(f"Key error: {e} not found in data.")
 
     # Define the sub-folder path
     sub_folder_path = f"{MODELS_DIR}/{GENERATED_MODELS_DIR}"
@@ -124,13 +129,11 @@ def create_pcsp_model(filename: str, data: Dict[str, int]) -> None:
 
     # Check if target file exists to avoid overwriting
     if os.path.exists(file_path):
-        print(f"{file_path} already exists. Choose a different name or path.")
-        return
+        raise FileExistsError(f"{file_path} already exists. Choose a different name or path.")
 
     # Write to the new file
     with open(file_path, "w") as file:
         file.write(content)
-        print(f"Generated {filename} successfully.")
 
     return
 
@@ -325,61 +328,19 @@ def generate_data_dict(rating_df: pd.DataFrame, players_in_match: Dict[str, dict
     home_stats = {}
     away_stats = {}
 
-    # Generate keeper stats
-    for i, player_id in enumerate(
-        players_in_match["home_team_sofifa_ids"]["goalkeeper"]
-    ):
-        home_stats[KEEPER_POSITIONS[i]] = get_player_rating_by_sofifa_id(
-            rating_df, player_id
-        )
+    positions = [
+        ("goalkeeper", KEEPER_POSITIONS),
+        ("defenders", DEFENDER_POSITIONS),
+        ("midfielders", MIDFIELDER_POSITIONS),
+        ("forwards", FORWARD_POSITIONS)
+    ]
 
-    for i, player_id in enumerate(
-        players_in_match["away_team_sofifa_ids"]["goalkeeper"]
-    ):
-        away_stats[KEEPER_POSITIONS[i]] = get_player_rating_by_sofifa_id(
-            rating_df, player_id
-        )
-
-    # Generate defender stats
-    for i, player_id in enumerate(
-        players_in_match["home_team_sofifa_ids"]["defenders"]
-    ):
-        home_stats[DEFENDER_POSITIONS[i]] = get_player_rating_by_sofifa_id(
-            rating_df, player_id
-        )
-
-    for i, player_id in enumerate(
-        players_in_match["away_team_sofifa_ids"]["defenders"]
-    ):
-        away_stats[DEFENDER_POSITIONS[i]] = get_player_rating_by_sofifa_id(
-            rating_df, player_id
-        )
-
-    # Generate midfielder stats
-    for i, player_id in enumerate(
-        players_in_match["home_team_sofifa_ids"]["midfielders"]
-    ):
-        home_stats[MIDFIELDER_POSITIONS[i]] = get_player_rating_by_sofifa_id(
-            rating_df, player_id
-        )
-
-    for i, player_id in enumerate(
-        players_in_match["away_team_sofifa_ids"]["midfielders"]
-    ):
-        away_stats[MIDFIELDER_POSITIONS[i]] = get_player_rating_by_sofifa_id(
-            rating_df, player_id
-        )
-
-    # Generate forward stats
-    for i, player_id in enumerate(players_in_match["home_team_sofifa_ids"]["forwards"]):
-        home_stats[FORWARD_POSITIONS[i]] = get_player_rating_by_sofifa_id(
-            rating_df, player_id
-        )
-
-    for i, player_id in enumerate(players_in_match["away_team_sofifa_ids"]["forwards"]):
-        away_stats[FORWARD_POSITIONS[i]] = get_player_rating_by_sofifa_id(
-            rating_df, player_id
-        )
+    for position, position_constants in positions:
+        for i, player_id in enumerate(players_in_match["home_team_sofifa_ids"][position]):
+            home_stats[position_constants[i]] = get_player_rating_by_sofifa_id(rating_df, player_id)
+            
+        for i, player_id in enumerate(players_in_match["away_team_sofifa_ids"][position]):
+            away_stats[position_constants[i]] = get_player_rating_by_sofifa_id(rating_df, player_id)
 
     try:
         home_data_dict = generate_data_dict_for_team(home_stats, away_stats)
@@ -387,8 +348,7 @@ def generate_data_dict(rating_df: pd.DataFrame, players_in_match: Dict[str, dict
 
         return (home_data_dict, away_data_dict)
     except Exception as e:
-        print(e)
-        return (None, None)
+        raise Exception(f"An error occurred while generating data dict: {str(e)}") from e
 
 
 if __name__ == "__main__":
@@ -424,13 +384,20 @@ if __name__ == "__main__":
 
     print_players(rating_df, players_in_match)
 
-    home_data_dict, away_data_dict = generate_data_dict(rating_df, players_in_match)
-
-    if home_data_dict is None or away_data_dict is None:
-        print("Error generating data dictionary")
+    try:
+        home_data_dict, away_data_dict = generate_data_dict(rating_df, players_in_match)
+    except Exception as e:
+        print(f"An error occurred: {e}")
         exit()
 
     base_file_name = f"{selected_season}__{match_name}"
 
-    create_pcsp_model(f"{base_file_name}_home.pcsp", home_data_dict)
-    create_pcsp_model(f"{base_file_name}_away.pcsp", away_data_dict)
+    try:
+        create_pcsp_model(f"{base_file_name}_home.pcsp", home_data_dict)
+        create_pcsp_model(f"{base_file_name}_away.pcsp", away_data_dict)
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        exit()
+
+    print(f"Generated models for {base_file_name} successfully.")
+
