@@ -4,11 +4,7 @@ import os
 import pandas as pd
 import re
 
-# Define the starting URL for your web crawler
-sofifa_url = "https://sofifa.com/player/232284/mark-travers/?r=190075&set=true"
 
-
-# Define the function to crawl a page
 def crawl_overall_rating(url):
     try:
         req = Request(url, headers={"User-Agent": "Mozilla/5.0"})
@@ -72,9 +68,8 @@ def write_to_csv(data: dict[dict[str, int]]):
         df.to_csv(f"../Datasets/ratings/{filename}", index=False)
 
 
-# Start crawling from the initial URL
-
-players = get_players_with_missing_overall_rating()
-missing_overall_ratings = crawl_plyers(players)
-print(missing_overall_ratings)
-write_to_csv(missing_overall_ratings)
+if __name__ == "__main__":
+    players = get_players_with_missing_overall_rating()
+    missing_overall_ratings = crawl_plyers(players)
+    print(missing_overall_ratings)
+    write_to_csv(missing_overall_ratings)
