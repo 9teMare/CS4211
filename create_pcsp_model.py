@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import sys
 import os
 import pandas as pd
 from typing import Dict
@@ -8,7 +9,7 @@ import re
 
 MODELS_DIR = "./models"
 GENERATED_MODELS_DIR = "./generated_models"
-TEMPLATE_FILENAME = "template.pcsp"
+DEFAULT_TEMPLATE_FILENAME = "template.pcsp"
 
 PLAYER_RATINGS_GENERATOR = {
     "shortPass": (lambda player: player["attacking_short_passing"]),
@@ -101,34 +102,16 @@ class TemplateNotFoundError(Exception):
 class FileExistsError(Exception):
     pass
 
-file_creation_lock = Lock()
-file_locks = {}
-
-def get_file_lock(file_path):
-  with file_creation_lock:
-    if file_path not in file_locks:
-      file_locks[file_path] = Lock()
-    return file_locks[file_path]
-
-def remove_file_lock(file_path):
-  with file_creation_lock:
-    if file_path in file_locks:
-      del file_locks[file_path]
-
-def clear_file_locks():
-  with file_creation_lock:
-    file_locks.clear()
-
-def create_pcsp_model(filename: str, data: Dict[str, int], selected_season: str) -> None:
+def create_pcsp_model(filename: str, data: Dict[str, int], selected_season: str, template_file_name: str) -> None:
   # Validate data to check if it has the relevant data
   if not validate_data(data):
     raise DataValidationError("Data dictionary passed is not valid, please check.")
 
   # Check if template file exists
-  if not os.path.exists(f"{MODELS_DIR}/{TEMPLATE_FILENAME}"):
+  if not os.path.exists(f"{MODELS_DIR}/{template_file_name}"):
     raise TemplateNotFoundError("Template file not found")
 
-  with open(f"{MODELS_DIR}/{TEMPLATE_FILENAME}", "r") as file:
+  with open(f"{MODELS_DIR}/{template_file_name}", "r") as file:
     template = file.read()
 
   # Replace placeholders with actual data
@@ -146,15 +129,16 @@ def create_pcsp_model(filename: str, data: Dict[str, int], selected_season: str)
   # Combine the sub-folder path with the desired filename
   file_path = os.path.join(sub_folder_path, filename)
 
-  # Atomically write to file path
-  with get_file_lock(file_path):
-    # Check if target file exists to avoid overwriting
-    if os.path.exists(file_path):
-      raise FileExistsError(f"{file_path} already exists. Choose a different name or path.")
+  # Check if target file exists to avoid overwriting.
+  # Files do not have to be written to atomically since we guarantee
+  # unique file paths
+  if os.path.exists(file_path):
+    raise FileExistsError(f"{file_path} already exists. Choose a different name or path.")
 
-    # Write to the new file
-    with open(file_path, "w") as file:
-      file.write(content)
+  # Write to the new file
+  with open(file_path, "w") as file:
+    file.write(content)
+
   return
 
 
@@ -372,6 +356,11 @@ def generate_data_dict(rating_df: pd.DataFrame, players_in_match: Dict[str, dict
 
 
 if __name__ == "__main__":
+    if len(sys.argv) > 1:
+      template_filename = sys.argv[1]
+    else:
+      template_filename = DEFAULT_TEMPLATE_FILENAME
+
     seasons = get_csv_files_in_folder(MATCHES_DIR)
     ratings = get_csv_files_in_folder(RATINGS_DIR)
 
@@ -413,12 +402,11 @@ if __name__ == "__main__":
     base_file_name = f"{selected_season}__{match_name}"
 
     try:
-        create_pcsp_model(f"{base_file_name}_home.pcsp", home_data_dict, selected_season)
-        create_pcsp_model(f"{base_file_name}_away.pcsp", away_data_dict, selected_season)
+        create_pcsp_model(f"{base_file_name}_home.pcsp", home_data_dict, selected_season, template_filename)
+        create_pcsp_model(f"{base_file_name}_away.pcsp", away_data_dict, selected_season, template_filename)
     except Exception as e:
         print(f"An error occurred: {e}")
         exit()
 
-    clear_file_locks()
     print(f"Generated models for {base_file_name} successfully.")
 
