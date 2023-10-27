@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 template = """
 // NOTE: This will only produce probabilities of goal when the away team attacks while the home team defends 
 // A similar pcsp file will have to be generated from the home team POV to meaningfully compare which team has the higher chance of scoring during an attack

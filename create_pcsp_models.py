@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import os
 import pandas as pd
 from concurrent.futures import ThreadPoolExecutor
@@ -29,8 +31,8 @@ def process_single_match(matches_df, ratings_df, match_idx, selected_season):
   base_file_name = f"{selected_season}__{match_name}"
 
   try:
-    create_pcsp_model(f"{base_file_name}_home.pcsp", home_data_dict)
-    create_pcsp_model(f"{base_file_name}_away.pcsp", away_data_dict)
+    create_pcsp_model(f"{base_file_name}_home.pcsp", home_data_dict, selected_season)
+    create_pcsp_model(f"{base_file_name}_away.pcsp", away_data_dict, selected_season)
   except Exception as e:
     print(f"Error occurred for {selected_season} {match_idx} {match_name}: {e}")
     return
@@ -53,7 +55,7 @@ if __name__ == "__main__":
     ratings_file_name = all_ratings[season_idx]
 
     matches_df = pd.read_csv(f"{MATCHES_DIR}/{season_file_name}")
-    ratings_df = pd.read_csv(f"{MATCHES_DIR}/{ratings_file_name}")
+    ratings_df = pd.read_csv(f"{RATINGS_DIR}/{ratings_file_name}")
 
     selected_season = season_file_name[-12:-4]
 

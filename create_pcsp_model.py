@@ -1,6 +1,8 @@
+#!/usr/bin/env python3
 import os
 import pandas as pd
 from typing import Dict
+from threading import Lock
 from generate_player_probLoseBall import generate_player_probLoseBall
 import re
 
@@ -99,43 +101,61 @@ class TemplateNotFoundError(Exception):
 class FileExistsError(Exception):
     pass
 
-def create_pcsp_model(filename: str, data: Dict[str, int]) -> None:
-    # Validate data to check if it has the relevant data
-    if not validate_data(data):
-        raise DataValidationError("Data dictionary passed is not valid, please check.")
+file_creation_lock = Lock()
+file_locks = {}
 
-    # Check if template file exists
-    if not os.path.exists(f"{MODELS_DIR}/{TEMPLATE_FILENAME}"):
-        raise TemplateNotFoundError("Template file not found")
+def get_file_lock(file_path):
+  with file_creation_lock:
+    if file_path not in file_locks:
+      file_locks[file_path] = Lock()
+    return file_locks[file_path]
 
-    with open(f"{MODELS_DIR}/{TEMPLATE_FILENAME}", "r") as file:
-        template = file.read()
+def remove_file_lock(file_path):
+  with file_creation_lock:
+    if file_path in file_locks:
+      del file_locks[file_path]
 
-    # Replace placeholders with actual data
-    try:
-        content = template.format(**data)
-    except KeyError as e:
-        raise KeyError(f"Key error: {e} not found in data.")
+def clear_file_locks():
+  with file_creation_lock:
+    file_locks.clear()
 
-    # Define the sub-folder path
-    sub_folder_path = f"{MODELS_DIR}/{GENERATED_MODELS_DIR}"
+def create_pcsp_model(filename: str, data: Dict[str, int], selected_season: str) -> None:
+  # Validate data to check if it has the relevant data
+  if not validate_data(data):
+    raise DataValidationError("Data dictionary passed is not valid, please check.")
 
-    # Create sub-folder if it does not exist
-    if not os.path.exists(sub_folder_path):
-        os.makedirs(sub_folder_path)
+  # Check if template file exists
+  if not os.path.exists(f"{MODELS_DIR}/{TEMPLATE_FILENAME}"):
+    raise TemplateNotFoundError("Template file not found")
 
-    # Combine the sub-folder path with the desired filename
-    file_path = os.path.join(sub_folder_path, filename)
+  with open(f"{MODELS_DIR}/{TEMPLATE_FILENAME}", "r") as file:
+    template = file.read()
 
+  # Replace placeholders with actual data
+  try:
+    content = template.format(**data)
+  except KeyError as e:
+    raise KeyError(f"Key error: {e} not found in data.")
+
+  # Define the sub-folder path
+  sub_folder_path = f"{MODELS_DIR}/{GENERATED_MODELS_DIR}/{selected_season}"
+
+  # Atomically create sub-folder if it does not exist
+  os.makedirs(sub_folder_path, exist_ok=True)
+
+  # Combine the sub-folder path with the desired filename
+  file_path = os.path.join(sub_folder_path, filename)
+
+  # Atomically write to file path
+  with get_file_lock(file_path):
     # Check if target file exists to avoid overwriting
     if os.path.exists(file_path):
-        raise FileExistsError(f"{file_path} already exists. Choose a different name or path.")
+      raise FileExistsError(f"{file_path} already exists. Choose a different name or path.")
 
     # Write to the new file
     with open(file_path, "w") as file:
-        file.write(content)
-
-    return
+      file.write(content)
+  return
 
 
 def validate_data(data: Dict[str, int]) -> bool:
@@ -393,11 +413,12 @@ if __name__ == "__main__":
     base_file_name = f"{selected_season}__{match_name}"
 
     try:
-        create_pcsp_model(f"{base_file_name}_home.pcsp", home_data_dict)
-        create_pcsp_model(f"{base_file_name}_away.pcsp", away_data_dict)
+        create_pcsp_model(f"{base_file_name}_home.pcsp", home_data_dict, selected_season)
+        create_pcsp_model(f"{base_file_name}_away.pcsp", away_data_dict, selected_season)
     except Exception as e:
         print(f"An error occurred: {e}")
         exit()
 
+    clear_file_locks()
     print(f"Generated models for {base_file_name} successfully.")
 

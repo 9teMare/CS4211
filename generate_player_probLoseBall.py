@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 def generate_player_probLoseBall(attacker: dict, defender: dict, k: float=1.0, weights: dict=None) -> int:
   if weights is None:
     weights = {
