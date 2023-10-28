@@ -10,7 +10,6 @@
 #define CR 10;
 #define RL 11;
 #define R 12;
-
 // Grid of eligible positions that can receive the ball
 // This will change based on the previous position and the action taken
 // 1 means the position is eligible to receive the ball
@@ -27,7 +26,10 @@ var danger = 0;
 
 // Actions based on FIFA player ratings
 // ShortPass, LongPass, LongShot, Finishing, Volley, and Header
-enum {SP, LP, LS, FI, VO, HD};
+enum {SP, LP, LS, FI, VO, HD, TK};
+
+var seqLimit = 20; 
+var seqCounter;
 
 // Match URL: https://www.premierleague.com/match/12115
 
@@ -40,29 +42,40 @@ var atkMidPos = [-1(6), 0, 1, 0, 1, 0, 1, 0, -1(6)];
 var atkForPos = [-1(6), 0, 1, 0, 1, 0, 1, 0, -1(6)];
 var defKepPos = [-1(6), 0, 0, 0, 1, 0, 0, 0, -1(6)];
 
+var defForPos = [-1(6), 0, 1, 0, 1, 0, 1, 0, -1(6)]; // will be compared to atkDefPos, C -> CL/CR, LR -> L, RL -> R
+var defMidPos = [-1(6), 0, 1, 0, 1, 0, 1, 0, -1(6)]; // will be compared to atkMidPos
+var defDefPos = [-1(6), 1, 0, 1, 0, 1, 0, 1, -1(6)]; // will be compared to atkForPos
+
 ///////////// AWAY TEAM PLAYERS (Attacking Team) /////////////
 // The parameters represent the probabilities specific to the player 
 // The gurad only allows eligible players to get the ball, see Individual Positions section for more info
 
 // For example keepers can only ShortPass or LongPass
 // Here 64, 64 represents the FIFA ShortPass and LongPass ratings for this particular player
-AtkKep = [pos[C] == 1]Kep_1(64, 64, C);
+AtkKep = [pos[C] == 1]Kep_1({ak_shortPass}, {ak_longPass}, C);
 
 // Here for the defenders, the first 3 parameters are with respect to the ShortPass, LongPass, and prob. to lose the ball respectively 
 // The prob. to lose the ball for the attacking team's defenders was calculated based on the defending team forward's player ratings 
 // In particular, the probability to lose the ball was a weighted combination of the standing tackle, sliding tackle, and interception FIFA player ratings of the forwards
-AtkDef = [pos[R] == 1]Def(73, 71, 38, R) [] [pos[CR] == 1]Def(68, 63, 38, CR) [] [pos[CL] == 1]Def(68, 63, 38, CL) [] [pos[L] == 1]Def(72, 59, 38, L);
+AtkDef = [pos[R] == 1]Def({ard_shortPass}, {ard_longPass}, {ard_probLoseBall}, R) [] [pos[CR] == 1]Def({acrd_shortPass}, {acrd_longPass}, {acrd_probLoseBall}, CR) [] [pos[CL] == 1]Def({acld_shortPass}, {acld_longPass}, {acld_probLoseBall}, CL) [] [pos[L] == 1]Def({ald_shortPass}, {ald_longPass}, {ald_probLoseBall}, L);
 
 // Similar to defenders, midfielders and forwards have their own specific parameters
 // See their processes below for more information on what those parameters are
 // The prob. to lose for the attacking team's midfielders is based on the defending team's midfielders
 // The prob. to lose for the attacking team's forwards is based on the defending team's defenders
-AtkMid = [pos[RL] == 1]Mid(79, 76, 74, 59, RL) [] [pos[C] == 1]Mid(83, 80, 57, 59, C) [] [pos[LR] == 1]Mid(78, 73, 75, 59, LR);
-AtkFor = [pos[RL] == 1]For(77, 75, 74, 77, 75, RL) [] [pos[C] == 1]For(75, 73, 66, 76, 75, C) [] [pos[LR] == 1]For(73, 65, 65, 69, 75, LR);
+AtkMid = [pos[RL] == 1]Mid({arm_shortPass}, {arm_longPass}, {arm_longShot}, {arm_probLoseBall}, RL) [] [pos[C] == 1]Mid({acm_shortPass}, {acm_longPass}, {acm_longShot}, {acm_probLoseBall}, C) [] [pos[LR] == 1]Mid({alm_shortPass}, {alm_longPass}, {alm_longShot}, {alm_probLoseBall}, LR);
+AtkFor = [pos[RL] == 1]For({arf_finish}, {arf_longShot}, {arf_volley}, {arf_header}, {arf_probLoseBall}, RL) [] [pos[C] == 1]For({acf_finish}, {acf_longShot}, {acf_volley}, {acf_header}, {acf_probLoseBall}, C) [] [pos[LR] == 1]For({alf_finish}, {alf_longShot}, {alf_volley}, {alf_header}, {alf_probLoseBall}, LR);
 
 ///////////// HOME TEAM PLAYERS (Defending Team) /////////////
 // Home team defenders, midfielders and forwards are already implicitly "defending" via the prob. to lose the ball parameter
-DefKep = [pos[C] == 1]Kep_2(72, C);
+DefKep = [pos[C] == 1]Kep_2({dk_gkRating}, C);
+// Home team defenders are just defending outfield players that quit
+DefDef = [pos[R] == 1]Def_outfield(R) [] [pos[CR] == 1]Def_outfield(CR) [] [pos[CL] == 1]Def_outfield(CL) [] [pos[L] == 1]Def_outfield(L);
+
+DefMid = [pos[RL] == 1]Def_outfield(RL) [] [pos[C] == 1]Def_outfield(C) [] [pos[LR] == 1]Def_outfield(LR); 
+
+DefFor = [pos[RL] == 1]Def_outfield(RL) [] [pos[C] == 1]Def_outfield(C) [] [pos[LR] == 1]Def_outfield(LR);
+
 
 ///////////// Individual Positions /////////////
 // There is a guard to every action (e.g., shortPass) a player can take
@@ -71,93 +84,108 @@ DefKep = [pos[C] == 1]Kep_2(72, C);
 // E.g., If a defender at L does a shortPass, the midfielder at R should not be able to receive it
 // The eligible players are updated with UpdatePos
 
-Kep_1(i, j, p) = [atkDefPos[p-2] == 1 || atkDefPos[p-1] == 1 || atkDefPos[p] == 1 || atkDefPos[p+1] == 1 || atkDefPos[p+2] == 1]shortPass -> pcase {
-	i: pass -> UpdatePos(p, SP); AtkDef
-	100-i: intercepted{danger = 5;} -> Skip
-} [] [atkDefPos[p-6] == 1 || atkDefPos[p-5] == 1 || atkDefPos[p-4] == 1 || atkDefPos[p-3] == 1 || atkDefPos[p+3] == 1 || atkDefPos[p+4] == 1 || atkDefPos[p+5] == 1 || atkDefPos[p+6] == 1]longPass -> pcase {
-	j: pass -> UpdatePos(p, LP); AtkDef
-	100-j: intercepted{danger = 5;} -> Skip
+Kep_1(shortPassRating, longPassRating, position) =ifa(seqCounter >= seqLimit) { 
+	Stop
+} else {
+ [atkDefPos[position-2] == 1 || atkDefPos[position-1] == 1 || atkDefPos[position] == 1 || atkDefPos[position+1] == 1 || atkDefPos[position+2] == 1]shortPass -> pcase {
+	shortPassRating: pass{seqCounter++;} -> UpdatePos(position, SP); AtkDef
+	100-shortPassRating: intercepted{danger = 5; seqCounter++;} -> Skip
+} [] [atkDefPos[position-6] == 1 || atkDefPos[position-5] == 1 || atkDefPos[position-4] == 1 || atkDefPos[position-3] == 1 || atkDefPos[position+3] == 1 || atkDefPos[position+4] == 1 || atkDefPos[position+5] == 1 || atkDefPos[position+6] == 1]longPass -> pcase {
+	longPassRating: pass{seqCounter++;}  -> UpdatePos(position, LP); AtkDef
+	100-longPassRating: intercepted{danger = 5;seqCounter++;} -> Skip
+}
+}; 
+
+Def(shortPassRating, longPassRating, probToLoseBall, position) = ifa(seqCounter >= seqLimit) { 
+	Stop
+} else { [atkMidPos[position-2] == 1 || atkMidPos[position-1] == 1 || atkMidPos[position] == 1 || atkMidPos[position+1] == 1 || atkMidPos[position+2] == 1]shortPass -> pcase {
+	shortPassRating: pass{seqCounter++;}  -> UpdatePos(position, SP); AtkMid
+	probToLoseBall: tackled{danger = 4;seqCounter++;} ->  Skip
+} [] [atkMidPos[position-6] == 1 || atkMidPos[position-5] == 1 || atkMidPos[position-4] == 1 || atkMidPos[position-3] == 1 || atkMidPos[position+3] == 1 || atkMidPos[position+4] == 1 || atkMidPos[position+5] == 1 || atkMidPos[position+6] == 1]longPass -> pcase {
+	longPassRating: pass{seqCounter++;} -> UpdatePos(position, LP); AtkMid
+	probToLoseBall: tackled{danger = 4; seqCounter++;} -> Skip
+}
 };
 
-Def(i, j, k, p) = [atkMidPos[p-2] == 1 || atkMidPos[p-1] == 1 || atkMidPos[p] == 1 || atkMidPos[p+1] == 1 || atkMidPos[p+2] == 1]shortPass -> pcase {
-	i: pass -> UpdatePos(p, SP); AtkMid
-	k: tackled{danger = 4;} -> Skip
-} [] [atkMidPos[p-6] == 1 || atkMidPos[p-5] == 1 || atkMidPos[p-4] == 1 || atkMidPos[p-3] == 1 || atkMidPos[p+3] == 1 || atkMidPos[p+4] == 1 || atkMidPos[p+5] == 1 || atkMidPos[p+6] == 1]longPass -> pcase {
-	j: pass -> UpdatePos(p, LP); AtkMid
-	k: tackled{danger = 4;} -> Skip
-};
-
-Mid(i, j, k, l, p) = [atkForPos[p-2] == 1 || atkForPos[p-1] == 1 || atkForPos[p] == 1 || atkForPos[p+1] == 1 || atkForPos[p+2] == 1]shortPass -> pcase {
-	i: pass -> UpdatePos(p, SP); AtkFor
-	l: tackled{danger = 3;} -> Skip
-} [] [atkForPos[p-6] == 1 || atkForPos[p-5] == 1 || atkForPos[p-4] == 1 || atkForPos[p-3] == 1 || atkForPos[p+3] == 1 || atkForPos[p+4] == 1 || atkForPos[p+5] == 1 || atkForPos[p+6] == 1]longPass -> pcase {
-	j: pass{inAir = true;} -> UpdatePos(p, LP); AtkFor
-	l: tackled{danger = 3;} -> Skip
+Mid(shortPassRating, longPassRating, longShotRating, probToLoseBall, position) = ifa(seqCounter >= seqLimit) { 
+	Stop
+} else { [atkForPos[position-2] == 1 || atkForPos[position-1] == 1 || atkForPos[position] == 1 || atkForPos[position+1] == 1 || atkForPos[position+2] == 1]shortPass -> pcase {
+	shortPassRating: pass{seqCounter++;} -> UpdatePos(position, SP); AtkFor
+	probToLoseBall: tackled{danger = 3; seqCounter++;} -> Skip
+} [] [atkForPos[position-6] == 1 || atkForPos[position-5] == 1 || atkForPos[position-4] == 1 || atkForPos[position-3] == 1 || atkForPos[position+3] == 1 || atkForPos[position+4] == 1 || atkForPos[position+5] == 1 || atkForPos[position+6] == 1]longPass -> pcase {
+	longPassRating: pass{inAir = true; seqCounter++}  -> UpdatePos(position, LP); AtkFor
+	probToLoseBall: tackled{danger = 3; seqCounter++;} -> Skip
 } [] [defKepPos[C] == 1]longShot -> pcase {
-	k: shoot -> UpdatePos(p, LS); DefKep
-	l: tackled{danger = 3;} -> Skip
-};
+	longShotRating: shoot{seqCounter++;}  -> UpdatePos(position, LS); DefKep
+	probToLoseBall: tackled{danger = 3;seqCounter++;}  -> Skip
+}
+}; 
 
-For(i, j, k, l, m, p) = [defKepPos[C] == 1]finish -> pcase {
-	i: shoot -> UpdatePos(p, FI); DefKep
-	m: tackled{danger = 2;} -> Skip
+For(finishRating, longShotRating, volleyRating, headerRating, probToLoseBall, position) = ifa(seqCounter >= seqLimit) { 
+	Stop
+} else { [defKepPos[C] == 1]finish -> pcase {
+	finishRating: shoot{seqCounter++;}  -> UpdatePos(position, FI); DefKep
+	probToLoseBall: tackled{danger = 2; seqCounter++;} -> Skip
 } [] [defKepPos[C] == 1]longShot -> pcase {
-	j: shoot -> UpdatePos(p, LS); DefKep
-	m: tackled{danger = 2;} -> Skip
+	longShotRating: shoot{seqCounter++;} -> UpdatePos(position, LS); DefKep
+	probToLoseBall: tackled{danger = 2; seqCounter++;} -> Skip
 } [] [defKepPos[C] == 1 && inAir == true]volley -> pcase {
-	k: shoot -> UpdatePos(p, VO); DefKep
-	m: tackled{danger = 2;} -> Skip
+	volleyRating: shoot{seqCounter++;} -> UpdatePos(position, VO); DefKep
+	probToLoseBall: tackled{danger = 2; seqCounter++;} -> Skip
 } [] [defKepPos[C] == 1 && inAir == true]header -> pcase {
-	l: shoot -> UpdatePos(p, HD); DefKep
-	m: tackled{danger = 2;} -> Skip
+	headerRating: shoot{seqCounter++;} -> UpdatePos(position, HD); DefKep
+	probToLoseBall: tackled{danger = 2; seqCounter++;}-> Skip
+}
+}; 
+
+Kep_2(gpRating, position) = attemptSave -> pcase {
+	gpRating: save{danger = 1; seqCounter++;} -> Skip
+	100-gpRating: concede -> Skip
 };
 
-Kep_2(i, p) = attemptSave -> pcase {
-	i: save{danger = 1;} -> Skip
-	100-i: concede -> Skip
-};
+Def_outfield(position) = intercepted -> Skip; 
 
-UpdatePos(p, e) = case {
-	p == L: 
+UpdatePos(position, e) = case {
+	position == L: 
 		case {
 			e == SP: {pos[L] = 1; pos[LR] = 1; pos[CL] = 1; pos[C] = 0; pos[CR] = 0; pos[RL] = 0; pos[R] = 0;} -> Skip
 			e == LP: {pos[L] = 0; pos[LR] = 0; pos[CL] = 0; pos[C] = 1; pos[CR] = 1; pos[RL] = 1; pos[R] = 1;} -> Skip
 			default: {pos[L] = 0; pos[LR] = 0; pos[CL] = 0; pos[C] = 1; pos[CR] = 0; pos[RL] = 0; pos[R] = 0;} -> Skip
 		}
-	p == LR:
+	position == LR:
 		case {
 			e == SP: {pos[L] = 1; pos[LR] = 1; pos[CL] = 1; pos[C] = 1; pos[CR] = 0; pos[RL] = 0; pos[R] = 0;} -> Skip
 			e == LP: {pos[L] = 0; pos[LR] = 0; pos[CL] = 0; pos[C] = 0; pos[CR] = 1; pos[RL] = 1; pos[R] = 1;} -> Skip
 			default: {pos[L] = 0; pos[LR] = 0; pos[CL] = 0; pos[C] = 1; pos[CR] = 0; pos[RL] = 0; pos[R] = 0;} -> Skip
 		}
-	p == CL: 
+	position == CL: 
 		case {
 			e == SP: {pos[L] = 1; pos[LR] = 1; pos[CL] = 1; pos[C] = 1; pos[CR] = 1; pos[RL] = 0; pos[R] = 0;} -> Skip
-			e == LP: {pos[L] = 0; pos[LR] = 0; pos[CL] = 0; pos[C] = 0; pos[CR] = 0; pos[RL] = 1; pos[R] = 1;} -> Skip
+			e == LP: {pos[L] = 0; pos[LR] = 0; pos[CL] = 0; pos[C] = 0; pos[CR] = 0; pos[RL] = 1; pos[R] = 1;} -> Skip		
 			default: {pos[L] = 0; pos[LR] = 0; pos[CL] = 0; pos[C] = 1; pos[CR] = 0; pos[RL] = 0; pos[R] = 0;} -> Skip
 		}
-	p == C:
+	position == C:
 		case {
 			e == SP: {pos[L] = 0; pos[LR] = 1; pos[CL] = 1; pos[C] = 1; pos[CR] = 1; pos[RL] = 1; pos[R] = 0;} -> Skip
-			e == LP: {pos[L] = 1; pos[LR] = 0; pos[CL] = 0; pos[C] = 0; pos[CR] = 0; pos[RL] = 0; pos[R] = 1;} -> Skip
+			e == LP: {pos[L] = 1; pos[LR] = 0; pos[CL] = 0; pos[C] = 0; pos[CR] = 0; pos[RL] = 0; pos[R] = 1;} -> Skip				
 			default: {pos[L] = 0; pos[LR] = 0; pos[CL] = 0; pos[C] = 1; pos[CR] = 0; pos[RL] = 0; pos[R] = 0;} -> Skip
 		}	
-	p == CR:
+	position == CR:
 		case {
 			e == SP: {pos[L] = 0; pos[LR] = 0; pos[CL] = 1; pos[C] = 1; pos[CR] = 1; pos[RL] = 1; pos[R] = 1;} -> Skip
-			e == LP: {pos[L] = 1; pos[LR] = 1; pos[CL] = 0; pos[C] = 0; pos[CR] = 0; pos[RL] = 0; pos[R] = 0;} -> Skip
+			e == LP: {pos[L] = 1; pos[LR] = 1; pos[CL] = 0; pos[C] = 0; pos[CR] = 0; pos[RL] = 0; pos[R] = 0;} -> Skip							
 			default: {pos[L] = 0; pos[LR] = 0; pos[CL] = 0; pos[C] = 1; pos[CR] = 0; pos[RL] = 0; pos[R] = 0;} -> Skip
 		}
-	p == RL:
+	position == RL:
 		case {
 			e == SP: {pos[L] = 0; pos[LR] = 0; pos[CL] = 0; pos[C] = 1; pos[CR] = 1; pos[RL] = 1; pos[R] = 1;} -> Skip
-			e == LP: {pos[L] = 1; pos[LR] = 1; pos[CL] = 1; pos[C] = 0; pos[CR] = 0; pos[RL] = 0; pos[R] = 0;} -> Skip
+			e == LP: {pos[L] = 1; pos[LR] = 1; pos[CL] = 1; pos[C] = 0; pos[CR] = 0; pos[RL] = 0; pos[R] = 0;} -> Skip	
 			default: {pos[L] = 0; pos[LR] = 0; pos[CL] = 0; pos[C] = 1; pos[CR] = 0; pos[RL] = 0; pos[R] = 0;} -> Skip
 		}
 	default:
 		case {
 			e == SP: {pos[L] = 0; pos[LR] = 0; pos[CL] = 0; pos[C] = 0; pos[CR] = 1; pos[RL] = 1; pos[R] = 1;} -> Skip
-			e == LP: {pos[L] = 1; pos[LR] = 1; pos[CL] = 1; pos[C] = 1; pos[CR] = 0; pos[RL] = 0; pos[R] = 0;} -> Skip
+			e == LP: {pos[L] = 1; pos[LR] = 1; pos[CL] = 1; pos[C] = 1; pos[CR] = 0; pos[RL] = 0; pos[R] = 0;} -> Skip		
 			default: {pos[L] = 0; pos[LR] = 0; pos[CL] = 0; pos[C] = 1; pos[CR] = 0; pos[RL] = 0; pos[R] = 0;} -> Skip
 		}
 };
