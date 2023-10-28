@@ -268,15 +268,25 @@ def generate_data_dict_for_team(for_stats, against_stats):
     data = {}
 
     # keeper stats
-    data["ak_shortPass"] = PLAYER_RATINGS_GENERATOR["shortPass"](
-        for_stats[KEEPER_POSITIONS[0]]
-    )
-    data["ak_longPass"] = PLAYER_RATINGS_GENERATOR["longPass"](
-        for_stats[KEEPER_POSITIONS[0]]
-    )
-    data["dk_gkRating"] = PLAYER_RATINGS_GENERATOR["dk_gkRating"](
-        against_stats[KEEPER_POSITIONS[0]]
-    )
+    try:
+      data["ak_shortPass"] = PLAYER_RATINGS_GENERATOR["shortPass"](
+          for_stats[KEEPER_POSITIONS[0]]
+      )
+    except Exception as e:
+      raise Exception(f"Could not get shortPass rating for keeper -> {against_stats[KEEPER_POSITIONS[0]][0]}, sofifa id: {against_stats[KEEPER_POSITIONS[0]]['sofifa_id']}")
+    try:
+      data["ak_longPass"] = PLAYER_RATINGS_GENERATOR["longPass"](
+          for_stats[KEEPER_POSITIONS[0]]
+      )
+    except Exception as e:
+      raise Exception(f"Could not get longPass rating for keeper -> {against_stats[KEEPER_POSITIONS[0]][0]}, sofifa id: {against_stats[KEEPER_POSITIONS[0]]['sofifa_id']}")
+    try:
+      data["dk_gkRating"] = PLAYER_RATINGS_GENERATOR["dk_gkRating"](
+          against_stats[KEEPER_POSITIONS[0]]
+      )
+    except Exception as e:
+      raise Exception(f"Could not get overall rating for keeper -> {against_stats[KEEPER_POSITIONS[0]][0]}, sofifa id: {against_stats[KEEPER_POSITIONS[0]]['sofifa_id']}")
+    
 
     # defender stats
     for position in DEFENDER_POSITIONS:
@@ -285,9 +295,13 @@ def generate_data_dict_for_team(for_stats, against_stats):
 
         short_pass_rating = PLAYER_RATINGS_GENERATOR["shortPass"](for_player)
         long_pass_rating = PLAYER_RATINGS_GENERATOR["longPass"](for_player)
-        prob_lose_ball = PLAYER_RATINGS_GENERATOR["probLoseBall"](
-            for_player, against_player
-        )
+        try:
+          prob_lose_ball = PLAYER_RATINGS_GENERATOR["probLoseBall"](
+              for_player, against_player
+          )
+        except Exception as e:
+          raise Exception(f"Could not prob_lose_ball (for DEFENDER -> {for_player[0]}, sofifa id: {for_player['sofifa_id']}, against player -> {against_player[0]}, sofifa id: {against_player['sofifa_id']}). Error: {e}.")
+
         data[f"a{position.lower()}_shortPass"] = short_pass_rating
         data[f"a{position.lower()}_longPass"] = long_pass_rating
         data[f"a{position.lower()}_probLoseBall"] = prob_lose_ball
@@ -300,9 +314,12 @@ def generate_data_dict_for_team(for_stats, against_stats):
         short_pass_rating = PLAYER_RATINGS_GENERATOR["shortPass"](for_player)
         long_pass_rating = PLAYER_RATINGS_GENERATOR["longPass"](for_player)
         long_shot_rating = PLAYER_RATINGS_GENERATOR["longShot"](for_player)
-        prob_lose_ball = PLAYER_RATINGS_GENERATOR["probLoseBall"](
-            for_player, against_player
-        )
+        try:
+          prob_lose_ball = PLAYER_RATINGS_GENERATOR["probLoseBall"](
+              for_player, against_player
+          )
+        except Exception as e:
+          raise Exception(f"Could not prob_lose_ball (for MIDFIELDER -> {for_player[0]}, sofifa id: {for_player['sofifa_id']}, against player -> {against_player[0]}, sofifa id: {against_player['sofifa_id']}). Error: {e}.")
         data[f"a{position.lower()}_shortPass"] = short_pass_rating
         data[f"a{position.lower()}_longPass"] = long_pass_rating
         data[f"a{position.lower()}_longShot"] = long_shot_rating
@@ -316,9 +333,12 @@ def generate_data_dict_for_team(for_stats, against_stats):
         volley_rating = PLAYER_RATINGS_GENERATOR["volley"](for_player)
         long_shot_rating = PLAYER_RATINGS_GENERATOR["longShot"](for_player)
         header_rating = PLAYER_RATINGS_GENERATOR["header"](for_player)
-        prob_lose_ball = PLAYER_RATINGS_GENERATOR["probLoseBall"](
-            for_player, against_player
-        )
+        try:
+          prob_lose_ball = PLAYER_RATINGS_GENERATOR["probLoseBall"](
+              for_player, against_player
+          )
+        except Exception as e:
+          raise Exception(f"Could not prob_lose_ball (for FORWARD -> {for_player[0]}, sofifa id: {for_player['sofifa_id']}, against player -> {against_player[0]}, sofifa id: {against_player['sofifa_id']}). Error: {e}.")
         data[f"a{position.lower()}_finish"] = finish_rating
         data[f"a{position.lower()}_longShot"] = long_shot_rating
         data[f"a{position.lower()}_volley"] = volley_rating
