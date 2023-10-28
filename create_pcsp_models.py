@@ -2,8 +2,7 @@
 import sys
 import os
 import pandas as pd
-from concurrent.futures import ThreadPoolExecutor
-from multiprocessing import cpu_count
+from multiprocessing import cpu_count, Pool
 from create_pcsp_model import (
   DEFAULT_TEMPLATE_FILENAME,
   MATCHES_DIR,
@@ -16,7 +15,7 @@ from create_pcsp_model import (
 )
 
 CPU_COUNT = int(os.environ.get("SLURM_JOB_CPUS_PER_NODE", cpu_count()))
-THREAD_TO_CPU_RATIO = 64
+THREAD_TO_CPU_RATIO = 2
 MAX_WORKERS = CPU_COUNT * THREAD_TO_CPU_RATIO
 
 def process_single_match(matches_df, ratings_df, match_idx, selected_season, template_filename):
@@ -69,5 +68,5 @@ if __name__ == "__main__":
       tasks.append(task)
   
 
-  with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-    executor.map(wrapper, tasks)
+  with Pool(processes=MAX_WORKERS) as pool:
+    pool.map(wrapper, tasks)

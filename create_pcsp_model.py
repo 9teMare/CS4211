@@ -195,7 +195,7 @@ def get_match_sofifa_ids(matches_df: pd.DataFrame, matchId):
 def get_player_rating_by_sofifa_id(rating_df: pd.DataFrame, sofifa_id) -> pd.Series:
     for _, row in rating_df.iterrows():
         if "sofifa_id" in row and int(float(row["sofifa_id"])) == sofifa_id:
-            get_player_statistics(row)
+            # get_player_statistics(row)
             return row
 
 

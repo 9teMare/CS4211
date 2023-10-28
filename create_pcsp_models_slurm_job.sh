@@ -7,7 +7,7 @@
 #SBATCH --partition=standard
 
 # Time for job, probably need something less tbh
-#SBATCH --time=03:00:00
+#SBATCH --time=00:30:00
 
 # Good to check on jobs and their success
 #SBATCH --output=logs/cs4211_model_creator_%j.slurmlog
