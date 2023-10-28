@@ -18,9 +18,16 @@ CPU_COUNT = int(os.environ.get("SLURM_JOB_CPUS_PER_NODE", cpu_count()))
 THREAD_TO_CPU_RATIO = 2
 MAX_WORKERS = CPU_COUNT * THREAD_TO_CPU_RATIO
 
+def get_pl_match_idx(matches_df, match_idx):
+  pl_match_url = matches_df.iloc[match_idx]["match_url"]
+  parts = pl_match_url.split("/")
+  pl_match_idx = parts[-1]
+  return pl_match_idx
+
 def process_single_match(matches_df, ratings_df, match_idx, selected_season, template_filename):
   match_name = get_match_name(matches_df, match_idx)
   players_in_match = get_match_sofifa_ids(matches_df, match_idx)
+  pl_match_idx = get_pl_match_idx(matches_df, match_idx)
 
   try:
     home_data_dict, away_data_dict = generate_data_dict(ratings_df, players_in_match)
@@ -28,7 +35,7 @@ def process_single_match(matches_df, ratings_df, match_idx, selected_season, tem
     print(f"Error occurred for {selected_season} {match_idx} {match_name}: {e}", flush=True)
     return
 
-  base_file_name = f"{selected_season}__{match_name}"
+  base_file_name = f"{selected_season}_{pl_match_idx}_{match_name}"
 
   try:
     create_pcsp_model(f"{base_file_name}_home.pcsp", home_data_dict, selected_season, template_filename)
