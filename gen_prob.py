@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # For macOS with mono installed
 
 import subprocess
