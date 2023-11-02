@@ -130,7 +130,7 @@ For(finishRating, longShotRating, volleyRating, headerRating, probToLoseBall, po
 	finishRating: pass -> UpdatePos(position, SideP); AtkFor
 	probToLoseBall: tackled{danger = 2;} -> Skip
 }  [] [danger >= 2 || atkMidPos[position-2] == 1 || atkMidPos[position-1] == 1 || atkMidPos[position] == 1 || atkMidPos[position+1] == 1 || atkMidPos[position+2] == 1]shortBackPass -> pcase {
-	100-probToLoseBall: backPass  -> UpdatePos(position, SP); AtkMid
+	finishRating: backPass  -> UpdatePos(position, SP); AtkMid
 	probToLoseBall: tackled{danger = 2;} ->  Skip
 };  
 
