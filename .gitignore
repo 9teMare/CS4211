@@ -4,3 +4,4 @@ models/generated_models/**/*.pcsp
 models/model_outputs/*.txt
 myenv/*
 pat_cli/*.output
+betting_simulation/generated_probabilities/*
