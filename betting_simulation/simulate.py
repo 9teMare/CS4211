@@ -8,12 +8,13 @@
 # To get such a probability distribution, you can use the softmax function to combine the probabilities from the home PAT model and away PAT model
 # To run the file, first install pandas, then simply: python simulate.py
 
+import os
 import pandas as pd
 
-def simulate_betting(season):
+def simulate_betting(season, directory_path):
     df_betting = pd.read_csv(f"betting_dataset/{season}.csv")
     df_original = pd.read_csv(f"original_probabilities/{season}.csv")
-    df_new = pd.read_csv(f"new_probabilities/{season}.csv")
+    df_new = pd.read_csv(f"{directory_path}/{season}.csv")
 
     # bet $100 for every match
     original_net, new_net = 0, 0
@@ -58,5 +59,9 @@ def simulate_betting(season):
 
 if __name__ == "__main__":
     seasons = [1516, 1617, 1718, 1819, 1920, 2021]
-    for season in seasons:
-        simulate_betting(season)
+    generated_probabilities_path = './generated_probabilities'
+
+    for subdir in os.listdir(generated_probabilities_path):
+      for season in seasons:
+          directory_path = os.path.join(generated_probabilities_path, subdir)
+          simulate_betting(season, directory_path)
