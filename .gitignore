@@ -3,4 +3,4 @@ logs/*.slurmlog
 models/generated_models/**/*.pcsp
 models/model_outputs/*.txt
 myenv/*
-PAT351/*.output
+pat_cli/*.output

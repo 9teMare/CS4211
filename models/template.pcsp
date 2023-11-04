@@ -27,7 +27,7 @@ var danger = 0;
 
 // Actions based on FIFA player ratings
 // ShortPass, LongPass, LongShot, Finishing, Volley, and Header
-enum {{SP, LP, LS, FI, VO, HD}};
+enum {{SP, LP, LS, FI, VO, HD, TK}};
 
 // Match URL: https://www.premierleague.com/match/12115
 
