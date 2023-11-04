@@ -8,6 +8,7 @@ from generate_player_probLoseBall import generate_player_probLoseBall
 import re
 
 MODELS_DIR = "./models"
+FINAL_TEMPLATES_DIR = "/final_templates"
 GENERATED_MODELS_DIR = "./generated_models"
 DEFAULT_TEMPLATE_FILENAME = "template_base_new.pcsp"
 
@@ -108,10 +109,14 @@ def create_pcsp_model(filename: str, data: Dict[str, int], selected_season: str,
     raise DataValidationError("Data dictionary passed is not valid, please check.")
 
   # Check if template file exists
-  if not os.path.exists(f"{MODELS_DIR}/{template_file_name}"):
+  if not os.path.exists(f"{MODELS_DIR}/{FINAL_TEMPLATES_DIR}/{template_file_name}"):
     raise TemplateNotFoundError("Template file not found")
+  
+  # Check we are parsing an actual .pcsp template file
+  if not template_file_name.endswith('.pcsp'):
+    raise ValueError("Invalid file extension for template. File must end with '.pcsp'")
 
-  with open(f"{MODELS_DIR}/{template_file_name}", "r") as file:
+  with open(f"{MODELS_DIR}/{FINAL_TEMPLATES_DIR}/{template_file_name}", "r") as file:
     template = file.read()
 
   # Replace placeholders with actual data
@@ -119,9 +124,12 @@ def create_pcsp_model(filename: str, data: Dict[str, int], selected_season: str,
     content = template.format(**data)
   except KeyError as e:
     raise KeyError(f"Key error: {e} not found in data.")
+  
+  # Model template we are generating
+  template_name = template_file_name[:-5]
 
   # Define the sub-folder path
-  sub_folder_path = f"{MODELS_DIR}/{GENERATED_MODELS_DIR}/{selected_season}"
+  sub_folder_path = f"{MODELS_DIR}/{GENERATED_MODELS_DIR}/{template_name}/{selected_season}"
 
   # Atomically create sub-folder if it does not exist
   os.makedirs(sub_folder_path, exist_ok=True)
