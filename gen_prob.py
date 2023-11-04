@@ -9,6 +9,7 @@ def gen_prob(model_file_name):
     output_file_name = model_file_name + ".output"
     output_file_path = "pat_cli/" + output_file_name
     command = ["mono", "pat_cli/PAT3.Console.exe", "-pcsp", model_file_path, output_file_name]
+    print(output_file_path)
     
     try:
         subprocess.run(command, check=True)
@@ -26,7 +27,7 @@ def gen_prob(model_file_name):
     except subprocess.CalledProcessError as e:
         print("Error during PAT execution:", e)
         return None
-    except FileNotFoundError:
+    except FileNotFoundError as e:
         print("Output file not found. Make sure the PAT command is generating the output file correctly.")
         return None
 
