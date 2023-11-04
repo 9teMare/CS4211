@@ -9,7 +9,7 @@ import re
 
 MODELS_DIR = "./models"
 GENERATED_MODELS_DIR = "./generated_models"
-DEFAULT_TEMPLATE_FILENAME = "template.pcsp"
+DEFAULT_TEMPLATE_FILENAME = "template_base_new.pcsp"
 
 PLAYER_RATINGS_GENERATOR = {
     "shortPass": (lambda player: player["attacking_short_passing"]),
