@@ -2,9 +2,9 @@
 import os
 import csv
 import subprocess
-from gen_prob_stubs import gen_prob, gen_softmax_home_prob
-# from gen_prob import gen_prob
-# from gen_softmax_home_prob import gen_softmax_home_prob
+# from gen_prob_stubs import gen_prob, gen_softmax_home_prob
+from gen_prob import gen_prob
+from gen_softmax_home_prob import gen_softmax_home_prob
 
 def generate_match_url(model_name):
   # Split model_name by `_` separator
@@ -19,13 +19,21 @@ def go_through_season_directory(season_directory_path):
 
     for model in models:
       if model.endswith('_home.pcsp'):
+        away_model = model.replace('_home.pcsp', '_away.pcsp')
+        away_path = os.path.join(season_directory_path, away_model)
+
+        if not os.path.isfile(away_path):
+          print(f"Error: {away_path} does not exist, skipping.")
+          continue
+
         home_path = os.path.join(season_directory_path, model)
-        away_path = home_path.replace('_home.pcsp', '_away.pcsp')
-
-        home_prob = gen_prob(home_path)
-        away_prob = gen_prob(away_path)
-
+        
+        home_prob = gen_prob(home_path, model)
+        print("home_prob: {0}".format(home_prob))
+        away_prob = gen_prob(away_path, away_model)
+        print("away_prob: {0}".format(away_prob))
         softmax_prob = gen_softmax_home_prob(home_prob, away_prob)
+        print("softmax_home_prob: {0}".format(softmax_prob))
 
         match_url = generate_match_url(model)
 
@@ -74,5 +82,4 @@ if __name__ == '__main__':
   subprocess.run(['rm', '-rf', output_directory])
   data = process_directory(models_directory)
   write_to_csv(data, output_directory)
-
 
