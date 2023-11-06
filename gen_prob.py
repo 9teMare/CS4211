@@ -4,8 +4,7 @@
 import subprocess
 import re
 
-def gen_prob(model_file_name):
-    model_file_path = "models/" + model_file_name + ".pcsp"
+def gen_prob(model_file_path, model_file_name):
     output_file_name = model_file_name + ".output"
     output_file_path = "pat_cli/" + output_file_name
     command = ["mono", "pat_cli/PAT3.Console.exe", "-pcsp", model_file_path, output_file_name]
@@ -32,5 +31,5 @@ def gen_prob(model_file_name):
         return None
 
 # Example usage
-prob = gen_prob("20152016_12115_AFC_Bournemouth_Aston_Villa_home")
-print(prob)
+# prob = gen_prob("20152016_12115_AFC_Bournemouth_Aston_Villa_home")
+# print(prob)
