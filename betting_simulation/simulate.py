@@ -27,7 +27,10 @@ def simulate_betting(season, directory_path):
         result = row['result']
 
         original_home_prob = df_original.loc[df_original['match_url'] == match_url]['home_prob_softmax'].values[0]
-        new_home_prob = df_new.loc[df_new['match_url'] == match_url]['home_prob_softmax'].values[0]
+        new_home_row = df_new.loc[df_new['match_url'] == match_url]['home_prob_softmax']
+        if len(new_home_row.values) == 0:
+            continue
+        new_home_prob = new_home_row.values[0]
 
         # predict draw
         if abs((1-original_home_prob) - original_home_prob) < 0.001:
@@ -58,10 +61,11 @@ def simulate_betting(season, directory_path):
     print(f"season {season} net profit (original, new): (${original_net}, ${new_net})")
 
 if __name__ == "__main__":
-    seasons = [1516, 1617, 1718, 1819, 1920, 2021]
+    seasons = [1516, 1617, 1718, 1819]
     generated_probabilities_path = './generated_probabilities'
 
     for subdir in os.listdir(generated_probabilities_path):
+      print(f'simulating for {subdir}')
       for season in seasons:
           directory_path = os.path.join(generated_probabilities_path, subdir)
           simulate_betting(season, directory_path)
