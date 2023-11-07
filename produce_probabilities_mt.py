@@ -13,7 +13,8 @@ from gen_softmax_home_prob import gen_softmax_home_prob
 CPU_COUNT = cpu_count()
 THREAD_TO_CPU_RATIO = 2
 MAX_PROCESS_WORKERS = CPU_COUNT * THREAD_TO_CPU_RATIO
-MAX_THREAD_WORKERS = MAX_PROCESS_WORKERS * THREAD_TO_CPU_RATIO
+# MAX_THREAD_WORKERS = MAX_PROCESS_WORKERS * THREAD_TO_CPU_RATIO
+MAX_THREAD_WORKERS = 5
 
 # Each process handles probability generation for 1 model, 1 season
 # Form subtasks of model type, season
@@ -28,18 +29,16 @@ def generate_match_url(model_name):
 
 def process_model(model, season_directory_path, lock, season_data):
   if model.endswith('_home.pcsp'):
-    away_model = model.replace('_home.pcsp', '_away.pcsp')
-    away_path = os.path.join(season_directory_path, away_model)
+    home_path = os.path.join(season_directory_path, model)
+    away_path = home_path.replace('_home', '_away')
 
     if not os.path.isfile(away_path):
       print(f"Error: {away_path} does not exist, skipping.")
       return
 
-    home_path = os.path.join(season_directory_path, model)
-
-    home_prob = gen_prob(home_path, model)
+    home_prob = gen_prob(home_path)
     print("home_prob: {0}".format(home_prob))
-    away_prob = gen_prob(away_path, away_model)
+    away_prob = gen_prob(away_path)
     print("away_prob: {0}".format(away_prob))
     softmax_prob = gen_softmax_home_prob(home_prob, away_prob)
     print("softmax_home_prob: {0}".format(softmax_prob))

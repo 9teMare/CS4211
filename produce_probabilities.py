@@ -19,19 +19,17 @@ def go_through_season_directory(season_directory_path):
 
     for model in models:
       if model.endswith('_home.pcsp'):
-        away_model = model.replace('_home.pcsp', '_away.pcsp')
-        away_path = os.path.join(season_directory_path, away_model)
+        home_path = os.path.join(season_directory_path, model)
+        away_path = home_path.replace('_home', '_away')
 
         if not os.path.isfile(away_path):
           print(f"Error: {away_path} does not exist, skipping.")
           continue
-
-        home_path = os.path.join(season_directory_path, model)
         
-        home_prob = gen_prob(home_path, model)
-        print("home_prob: {0}".format(home_prob))
-        away_prob = gen_prob(away_path, away_model)
-        print("away_prob: {0}".format(away_prob))
+        home_prob = gen_prob(home_path)
+        # print("home_prob: {0}".format(home_prob))
+        away_prob = gen_prob(away_path)
+        # print("away_prob: {0}".format(away_prob))
         softmax_prob = gen_softmax_home_prob(home_prob, away_prob)
         print("softmax_home_prob: {0}".format(softmax_prob))
 

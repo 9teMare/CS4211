@@ -1,18 +1,19 @@
 #!/usr/bin/env python3
 # For macOS with mono installed
 
+import os
 import subprocess
 import re
 
-def gen_prob(model_file_path, model_file_name):
-    output_file_name = model_file_name + ".output"
+def gen_prob(model_file_path):
+    output_file_name = model_file_path.replace("/", "_") + ".output"
     output_file_path = "pat_cli/" + output_file_name
     command = ["mono", "pat_cli/PAT3.Console.exe", "-pcsp", model_file_path, output_file_name]
-    print(output_file_path)
     
     try:
-        subprocess.run(command, check=True)
-
+        if not os.path.isfile(output_file_path):
+            subprocess.run(command, check=True)
+            
         with open(output_file_path, 'r') as f:
             output = f.read()
 
