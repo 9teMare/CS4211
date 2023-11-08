@@ -27,10 +27,6 @@ def simulate_betting(season, directory_path):
         result = row['result']
 
         original_home_prob = df_original.loc[df_original['match_url'] == match_url]['home_prob_softmax'].values[0]
-        new_home_row = df_new.loc[df_new['match_url'] == match_url]['home_prob_softmax']
-        if len(new_home_row.values) == 0:
-            continue
-        new_home_prob = new_home_row.values[0]
 
         # predict draw
         if abs((1-original_home_prob) - original_home_prob) < 0.001:
@@ -44,6 +40,11 @@ def simulate_betting(season, directory_path):
         elif original_home_prob < (1-original_home_prob):
             if result == 1: original_net += (away_odds * 100) - 100
             else: original_net -= 100
+        
+        new_home_row = df_new.loc[df_new['match_url'] == match_url]['home_prob_softmax']
+        if len(new_home_row.values) == 0:
+            continue
+        new_home_prob = new_home_row.values[0]
 
         # predict draw
         if abs((1-new_home_prob) - new_home_prob) < 0.001:
